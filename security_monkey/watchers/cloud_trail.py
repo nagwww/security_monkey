@@ -78,12 +78,20 @@ class CloudTrail(Watcher):
                     # always refers to the region in which the trail was
                     # created.
                     home_region = trail.get('HomeRegion')
+                    trail_enabled = ""
+                    try:
+                        get_trail_status = self.wrap_aws_rate_limited_call(cloud_trail.get_trail_status,
+                                                                           Name=trail['TrailARN'])
+                        trail_enabled = get_trail_status["IsLogging"]
+                    except Exception as e:
+                        app.logger.debug("Issues getting the status of cloudtrail")
 
                     if self.check_ignore_list(name):
                         continue
 
                     item_config = {
                         'trail': name,
+                        'trail_status': trail_enabled,
                         's3_bucket_name': trail['S3BucketName'],
                         's3_key_prefix': trail.get('S3KeyPrefix'),
                         'sns_topic_name': trail.get('SnsTopicName'),
@@ -107,7 +115,6 @@ class CloudTrail(Watcher):
 
 
 class CloudTrailItem(ChangeItem):
-
     def __init__(self, account=None, region=None, name=None, arn=None, config={}):
         super(CloudTrailItem, self).__init__(
             index=CloudTrail.index,
