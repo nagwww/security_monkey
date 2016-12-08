@@ -24,6 +24,7 @@
 from security_monkey.watcher import Watcher
 from security_monkey.watcher import ChangeItem
 from security_monkey.constants import TROUBLE_REGIONS
+from security_monkey.datastore import store_exception
 from security_monkey.exceptions import BotoConnectionIssue
 from security_monkey import app
 from boto.cloudtrail import regions
@@ -31,8 +32,8 @@ from boto.cloudtrail import regions
 
 class CloudTrail(Watcher):
     index = 'cloudtrail'
-    i_am_singular = 'Cloud Trail'
-    i_am_plural = 'Cloud Trails'
+    i_am_singular = 'CloudTrail'
+    i_am_plural = 'CloudTrails'
 
     def __init__(self, accounts=None, debug=False):
         super(CloudTrail, self).__init__(accounts=accounts, debug=debug)
@@ -85,6 +86,9 @@ class CloudTrail(Watcher):
                         trail_enabled = get_trail_status["IsLogging"]
                     except Exception as e:
                         app.logger.debug("Issues getting the status of cloudtrail")
+                        # Store it to the database:
+                        location = (self.index, account, region.name, name)
+                        store_exception("cloudtrail", location, e)
 
                     if self.check_ignore_list(name):
                         continue
